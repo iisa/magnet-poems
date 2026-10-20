@@ -295,6 +295,7 @@
 
   function clearPoem(silent) {
     leaveClassic();
+    setPoemTitle('');
     cursor = { x: PAD, y: PAD };
     animated(() => packTray(state.magnets));
     renderPoem();
@@ -307,39 +308,128 @@
     btn.disabled = true;
     btn.setAttribute('aria-busy', 'true');
     try {
-      leaveClassic();
-      setPoemH(POEM_DEFAULT);
       const tiles = state.magnets.map((m) => m.word);
       const raw = await POETS[POET](tiles, rnd());
-      const { lines } = L.fitToTiles(raw, tiles);
-      const free = new Set(state.magnets);
-      const take = (w) => {
-        const m = state.magnets.find((t) => t.word === w && free.has(t));
-        free.delete(m);
-        return m;
-      };
-      let y = PAD + 8;
-      animated(() => {
-        // Everything not in the new poem goes back to the tray.
-        state.magnets.forEach((m) => { m.y = POEM_H + PAD; });
-        lines.forEach((line, i) => {
-          let x = PAD + 8 + (i % 2) * 24; // a little stagger, fridge-style
-          for (const w of line) {
-            const m = take(w);
-            if (x + m.el.offsetWidth > fridge.clientWidth - PAD) { x = PAD + 8; y += LINE; }
-            setPos(m, x, y);
-            x += m.el.offsetWidth + 8;
-          }
-          y += LINE;
-        });
-        packTray(trayTiles());
-      });
-      cursor = { x: PAD, y: Math.min(y, POEM_H - 48) }; // keyboard adds go below it
-      renderPoem();
-      announce(`${intro || 'New poem'}: ${poemText().replace(/\n/g, ' / ')}`);
+      showPoem(L.fitToTiles(raw, tiles).lines, '', intro);
     } finally {
       btn.disabled = false;
       btn.removeAttribute('aria-busy');
+    }
+  }
+
+  // Put lines of words on the fridge as a fresh poem (everything else goes
+  // back to the tray), or below the current poem when adding to it.
+  function showPoem(lines, title, intro, { append = false } = {}) {
+    if (!append) {
+      leaveClassic();
+      setPoemH(POEM_DEFAULT);
+    }
+    const kept = append ? state.magnets.filter(inPoem) : [];
+    const free = new Set(state.magnets.filter((m) => !kept.includes(m) && !m.classic));
+    const take = (w) => {
+      const m = [...free].find((t) => t.word === w);
+      free.delete(m);
+      return m;
+    };
+    let y = kept.length ? Math.max(...kept.map((m) => m.y)) + LINE : PAD + 8;
+    // Room for the new lines (wrapping can add a few): grow the poem area if needed.
+    const need = y + (lines.length + 2) * LINE;
+    if (need > POEM_H) setPoemH(need);
+    animated(() => {
+      if (!append) state.magnets.forEach((m) => { m.y = POEM_H + PAD; });
+      lines.forEach((line, i) => {
+        let x = PAD + 8 + (i % 2) * 24; // a little stagger, fridge-style
+        for (const w of line) {
+          const m = take(w);
+          if (!m) continue;
+          if (x + m.el.offsetWidth > fridge.clientWidth - PAD) { x = PAD + 8; y += LINE; }
+          setPos(m, x, y);
+          x += m.el.offsetWidth + 8;
+        }
+        y += LINE;
+      });
+      packTray(trayTiles());
+    });
+    cursor = { x: PAD, y: Math.min(y, POEM_H - 48) }; // keyboard adds go below it
+    if (!append || title) setPoemTitle(title);
+    renderPoem();
+    announce(`${intro || 'New poem'}: ${poemText().replace(/\n/g, ' / ')}`);
+  }
+
+  function setPoemTitle(title) {
+    state.poemTitle = title || '';
+    $('poem-title').textContent = state.poemTitle;
+    $('poem-title').hidden = !state.poemTitle;
+  }
+
+  // ---- AI poet: Chrome's built-in model (optional) -----------------------
+  //
+  // Progressive enhancement: the AI buttons only appear when the browser
+  // has Chrome's Prompt API and the device can run it. The model answers
+  // with tile numbers (JSON schema), so it can only use real tiles.
+
+  const AI_OPTS = {
+    expectedInputs: [{ type: 'text', languages: ['en'] }],
+    expectedOutputs: [{ type: 'text', languages: ['en'] }],
+  };
+  let aiState = 'unavailable'; // 'available' | 'downloadable' | 'downloading' | 'unavailable'
+
+  async function setupAI() {
+    if (!('LanguageModel' in self)) return;
+    try {
+      aiState = await LanguageModel.availability(AI_OPTS);
+    } catch (err) {
+      return;
+    }
+    if (aiState === 'unavailable') return;
+    for (const [key, s] of Object.entries(L.POEM_STYLES)) $('ai-style').append(new Option(s.label, key));
+    $('ai-tools').hidden = false;
+    setAiStatus(aiState === 'available' ? '' : '✨ uses Chrome’s built-in AI: a one-time download of a few GB');
+  }
+
+  function setAiStatus(text) { $('ai-status').textContent = text; }
+
+  // Ask Chrome's model for a poem. finish: continue what's on the fridge
+  // using only tray tiles.
+  async function aiPoem(finish) {
+    const buttons = [$('ai-write'), $('ai-finish')];
+    buttons.forEach((b) => { b.disabled = true; b.setAttribute('aria-busy', 'true'); });
+    let session;
+    try {
+      const poem = finish ? poemText() : '';
+      if (finish && !poem) {
+        announce('Put some words above the line first, then ask the AI to finish them.');
+        return;
+      }
+      // create() first, inside the click, since a first download needs a user gesture.
+      session = await LanguageModel.create({
+        ...AI_OPTS,
+        initialPrompts: [{ role: 'system', content: L.POET_SYSTEM }],
+        monitor(m) {
+          m.addEventListener('downloadprogress', (e) => {
+            setAiStatus(`Downloading Chrome’s AI… ${Math.round(e.loaded * 100)}%`);
+          });
+        },
+      });
+      aiState = 'available';
+      setAiStatus('Thinking…');
+      const pool = finish ? trayTiles().filter((m) => !m.classic) : state.magnets.filter((m) => !m.classic);
+      const tiles = pool.map((m) => m.word);
+      const reply = await session.prompt(
+        L.poetPrompt({ tiles, style: $('ai-style').value, book: state.title, poem }),
+        { responseConstraint: L.POEM_SCHEMA },
+      );
+      const { title, lines } = L.linesFromIndices(JSON.parse(reply), tiles);
+      if (!lines.length) throw new Error('The AI didn’t use any tiles.');
+      setAiStatus('');
+      showPoem(lines, title, finish ? 'The AI added' : 'AI poem', { append: finish });
+      if (!finish) showFridgeTop();
+    } catch (err) {
+      console.warn('AI poet:', err);
+      setAiStatus('The AI poet got muddled on that one. Try again, or use Write me a poem.');
+    } finally {
+      if (session && session.destroy) session.destroy();
+      buttons.forEach((b) => { b.disabled = false; b.removeAttribute('aria-busy'); });
     }
   }
 
@@ -355,6 +445,7 @@
   // little, then the rest of the tray in random order.
   async function shapePoem() {
     leaveClassic();
+    setPoemTitle('');
     setPoemH(SHAPE_H);
     // A picked shape, or "surprise me" walks through them all in turn.
     const name = $('shape-pick').value || SHAPE_ORDER[shapeIndex++ % SHAPE_ORDER.length];
@@ -388,6 +479,7 @@
   // indents from the printed text. The book's tiles wait in the tray.
   function showClassic(name) {
     leaveClassic();
+    setPoemTitle('');
     const c = L.CLASSICS[name];
     const tiles = L.classicTiles(name);
     state.magnets.forEach((m) => { m.y = POEM_H + PAD; });
@@ -667,6 +759,7 @@
   // ---- wiring ----------------------------------------------------------
 
   renderShelves();
+  setupAI();
 
   // One listener for every book card: favorites, "more", and search.
   document.addEventListener('click', (e) => {
@@ -675,6 +768,8 @@
   });
   $('new-words').addEventListener('click', () => { if (state.text) dealWords(); });
   $('write').addEventListener('click', () => { if (state.magnets.length) writePoem(); });
+  $('ai-write').addEventListener('click', () => { if (state.magnets.length) aiPoem(false); });
+  $('ai-finish').addEventListener('click', () => { if (state.magnets.length) aiPoem(true); });
   $('shape').addEventListener('click', () => { if (state.magnets.length) shapePoem(); });
   $('shape-pick').addEventListener('change', () => {
     if (state.magnets.length && $('shape-pick').value) shapePoem();
@@ -690,12 +785,13 @@
     if (q) search(q);
   });
   $('copy').addEventListener('click', async () => {
+    const head = state.poemTitle ? `${state.poemTitle}\n\n` : '';
     const c = state.classic && L.CLASSICS[state.classic];
     const credit = c
       ? `\n\n— ${c.title}, ${c.credit}\nhttps://archive.org/details/${c.source}`
       : `\n\n— words from ${state.title}${state.creator ? ` by ${state.creator}` : ''}\nhttps://archive.org/details/${state.id}`;
     try {
-      await navigator.clipboard.writeText(poemText() + credit);
+      await navigator.clipboard.writeText(head + poemText() + credit);
       announce('Poem copied.');
     } catch (err) {
       announce('Copy failed; select the poem text instead.');

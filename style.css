@@ -283,9 +283,20 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   border-image: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 16px) 4;
 }
 #write { background: var(--accent); color: var(--accent-text); }
+/* Small screens: keep the sticky bar short so it doesn't cover the fridge. */
+@media (max-width: 700px) {
+  .fridge-actions { gap: 6px; padding: 6px 0 8px; }
+  .fridge-actions button, .fridge-actions .shape-group select { font-size: 0.85rem; padding: 4px 10px; }
+}
+.ai-tools { display: contents; }
+.ai-btn { background: var(--classic); color: var(--magnet-text); }
+.ai-status { flex-basis: 100%; margin: 0; text-align: center; font-size: 0.8rem; color: var(--muted); }
+.ai-status:empty { display: none; }
+.poem-title { margin: 0 0 4px; font: 1.2rem/1.3 Georgia, serif; font-style: italic; }
+
 /* Shape button + picker read as one pill. */
 .shape-group { display: inline-flex; }
-.shape-group #shape { border-radius: 999px 0 0 999px; }
+.shape-group > button { border-radius: 999px 0 0 999px; }
 .shape-group select {
   font: inherit;
   font-weight: 600;

@@ -55,9 +55,18 @@
           <option value="">✨ surprise me</option>
         </select>
       </span>
+      <span id="ai-tools" class="ai-tools" hidden>
+        <span class="shape-group">
+          <button type="button" id="ai-write" class="ai-btn">✨ AI poem</button>
+          <label class="visually-hidden" for="ai-style">AI poem style</label>
+          <select id="ai-style"></select>
+        </span>
+        <button type="button" id="ai-finish" class="ai-btn">✨ Finish my poem</button>
+      </span>
       <button type="button" id="shake">Shake up</button>
       <button type="button" id="new-words">New words</button>
       <button type="button" id="clear">Clear poem</button>
+      <p id="ai-status" class="ai-status" role="status"></p>
     </div>
 
     <section class="controls" aria-labelledby="classics-h">
@@ -76,6 +85,7 @@
 
     <section aria-labelledby="poem-h" class="poem-wrap">
       <h2 id="poem-h">Your poem</h2>
+      <p id="poem-title" class="poem-title" hidden></p>
       <p id="poem-credit" class="source" hidden></p>
       <pre id="poem" class="poem"></pre>
       <button type="button" id="copy">Copy poem</button>

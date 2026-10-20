@@ -207,3 +207,41 @@ test("classicTiles(mouse): every word of the Mouse's Tale, shrinking toward the 
   assert.ok(Math.abs(tiles[tiles.length - 1].scale - 0.55) < 1e-9);
   assert.equal(new Set(tiles.map((t) => t.line)).size, 44);
 });
+
+// ---- AI poet ----------------------------------------------------------------
+
+test('poetPrompt: numbers every tile, names the book and the style', () => {
+  const p = lib.poetPrompt({ tiles: ['the', 'whale', '-s'], style: 'haiku', book: 'Moby Dick' });
+  assert.match(p, /haiku/);
+  assert.match(p, /"Moby Dick"/);
+  assert.match(p, /0: the\n1: whale\n2: -s/);
+});
+
+test('poetPrompt: finishing a poem quotes it and asks to continue', () => {
+  const p = lib.poetPrompt({ tiles: ['sea'], style: 'free', book: 'X', poem: 'the leaden sky' });
+  assert.match(p, /in progress:\nthe leaden sky/);
+  assert.match(p, /Continue it/);
+});
+
+test('linesFromIndices: maps tile numbers to words, keeps the title', () => {
+  const tiles = ['the', 'whale', '-s', 'sing'];
+  const out = lib.linesFromIndices({ title: 'Deep song', lines: [[0, 1, 2], [3]] }, tiles);
+  assert.deepEqual(out, { title: 'Deep song', lines: [['the', 'whale', '-s'], ['sing']] });
+});
+
+test('linesFromIndices: a model that cheats gets its bad tiles dropped', () => {
+  const tiles = ['the', 'whale', 'sing'];
+  const out = lib.linesFromIndices({ title: 7, lines: [[0, 1, 1, 9, -1, 1.5, '2'], [0], [2], 'oops'] }, tiles);
+  // reused 1 and 0, out of range 9/-1, non-integers 1.5/'2', non-array line: all dropped
+  assert.deepEqual(out, { title: '', lines: [['the', 'whale'], ['sing']] });
+});
+
+test('linesFromIndices: garbage in, nothing out', () => {
+  assert.deepEqual(lib.linesFromIndices(null, ['a']), { title: '', lines: [] });
+  assert.deepEqual(lib.linesFromIndices({ lines: 'x' }, ['a']), { title: '', lines: [] });
+});
+
+test('POEM_SCHEMA: asks for exactly a title and lines of integers', () => {
+  assert.deepEqual(lib.POEM_SCHEMA.required, ['title', 'lines']);
+  assert.equal(lib.POEM_SCHEMA.properties.lines.items.items.type, 'integer');
+});

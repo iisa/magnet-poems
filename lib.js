@@ -440,10 +440,69 @@
     return tiles;
   }
 
+  // ---- AI poet (Chrome's built-in model, or any model with JSON output) ----
+  // The model gets numbered tiles and answers with tile numbers, never
+  // free text, so it can't invent words. linesFromIndices maps the numbers
+  // back to words and drops anything invalid.
+
+  const POEM_STYLES = {
+    free: { label: 'free verse', ask: 'a short free-verse poem of 3 to 5 lines' },
+    haiku: { label: 'haiku', ask: 'a haiku: three short lines, roughly 5, 7 and 5 syllables' },
+    voice: { label: "in the book's voice", ask: 'a poem of 3 to 5 lines in the voice and mood of the book the words come from' },
+    limerick: { label: 'limerick', ask: 'a playful, bouncy poem of 5 short lines, like a limerick' },
+    love: { label: 'love note', ask: 'a tiny love note of 2 to 4 lines' },
+  };
+
+  const POET_SYSTEM = 'You write fridge-magnet poems. You may only use the numbered word ' +
+    'tiles you are given, each tile at most once. Tiles that start with "-" are ' +
+    'suffixes that join the tile before them ("whale" then "-s" reads "whales"). ' +
+    'Answer only with JSON: a short title in your own words, and lines, where each ' +
+    'line is a list of tile numbers in reading order. Make it sound good read aloud.';
+
+  const POEM_SCHEMA = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['title', 'lines'],
+    properties: {
+      title: { type: 'string' },
+      lines: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 6,
+        items: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'integer' } },
+      },
+    },
+  };
+
+  // poem: the lines already on the fridge, when asking to continue them.
+  function poetPrompt({ tiles, style, book, poem }) {
+    const list = tiles.map((w, i) => `${i}: ${w}`).join('\n');
+    const s = POEM_STYLES[style] || POEM_STYLES.free;
+    const task = poem
+      ? `Here is a fridge poem in progress:\n${poem}\n\nContinue it with 1 to 3 more lines that fit it.`
+      : `Write ${s.ask}.`;
+    return `${task}\nThe tiles were cut from the book "${book}".\n\nTiles:\n${list}`;
+  }
+
+  // Model answer → { title, lines of words }. Out-of-range, non-integer
+  // and reused tile numbers are dropped; empty lines removed.
+  function linesFromIndices(result, tiles) {
+    const used = new Set();
+    const raw = result && Array.isArray(result.lines) ? result.lines : [];
+    const lines = raw
+      .map((line) => (Array.isArray(line) ? line : [])
+        .filter((i) => Number.isInteger(i) && i >= 0 && i < tiles.length && !used.has(i) && used.add(i))
+        .map((i) => tiles[i]))
+      .filter((l) => l.length);
+    const title = result && typeof result.title === 'string' ? result.title.trim().slice(0, 80) : '';
+    return { title, lines };
+  }
+
   const api = {
     GLUE, pickTextFile, stripBoilerplate, countWords, bookStats, mulberry32, buildMagnets, readPoem,
     guessKind, templatePoem, fitToTiles,
     SHAPES, layoutPath, layoutRows, layoutShape, CLASSICS, classicTiles,
+    POEM_STYLES, POET_SYSTEM, POEM_SCHEMA, poetPrompt, linesFromIndices,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MagnetLib = api;
