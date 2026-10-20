@@ -214,13 +214,21 @@ test('poetPrompt: numbers every tile, names the book and the style', () => {
   const p = lib.poetPrompt({ tiles: ['the', 'whale', '-s'], style: 'haiku', book: 'Moby Dick' });
   assert.match(p, /haiku/);
   assert.match(p, /"Moby Dick"/);
-  assert.match(p, /0: the\n1: whale\n2: -s/);
+  assert.match(p, /Tiles:\n0 the, 1 whale, 2 -s$/);
 });
 
 test('poetPrompt: finishing a poem quotes it and asks to continue', () => {
   const p = lib.poetPrompt({ tiles: ['sea'], style: 'free', book: 'X', poem: 'the leaden sky' });
   assert.match(p, /in progress:\nthe leaden sky/);
   assert.match(p, /Continue it/);
+});
+
+test('poetTileOrder: glue tiles first, every tile exactly once, same seed same order', () => {
+  const tiles = ['hemlock', 'the', 'leaden', '-s', 'meadow', 'and', 'juggler'];
+  const order = lib.poetTileOrder(tiles, 5);
+  assert.deepEqual(order.slice(0, 3).map((i) => tiles[i]), ['the', '-s', 'and']);
+  assert.deepEqual([...order].sort(), [0, 1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(order, lib.poetTileOrder(tiles, 5));
 });
 
 test('linesFromIndices: maps tile numbers to words, keeps the title', () => {

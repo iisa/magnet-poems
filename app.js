@@ -387,6 +387,35 @@
     setAiStatus(aiState === 'available' ? '' : '✨ uses Chrome’s built-in AI: a one-time download of a few GB');
   }
 
+  // Chrome's model window can be small (1,000 tokens on some machines), so
+  // offer as many tiles as fit: measure, and halve the gap until it does.
+  // Leaves room for the JSON answer. Handles the older and newer names
+  // for the window/measure API.
+  const ANSWER_ROOM = 250;
+  async function fitPrompt(session, words, poem) {
+    const size = session.contextWindow ?? session.inputQuota;
+    const used = session.contextUsage ?? session.inputUsage ?? 0;
+    const measure = (session.measureContextUsage || session.measureInputUsage);
+    const order = L.poetTileOrder(words, rnd());
+    const build = (n) => {
+      const tiles = order.slice(0, n).map((i) => words[i]);
+      return { tiles, prompt: L.poetPrompt({ tiles, style: $('ai-style').value, book: state.title, poem }) };
+    };
+    if (!size || !measure) return build(words.length);
+    // The JSON schema gets added to the input too, so measure with it.
+    const fits = async (n) => used +
+      await measure.call(session, build(n).prompt, { responseConstraint: L.POEM_SCHEMA }) + ANSWER_ROOM <= size;
+    if (await fits(words.length)) return build(words.length);
+    let lo = 0;
+    let hi = words.length;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (await fits(mid)) lo = mid; else hi = mid;
+    }
+    if (lo < 12) throw new Error(`model window too small (${size} tokens)`);
+    return build(lo);
+  }
+
   function setAiStatus(text) { $('ai-status').textContent = text; }
 
   // Ask Chrome's model for a poem. finish: continue what's on the fridge
@@ -414,11 +443,13 @@
       aiState = 'available';
       setAiStatus('Thinking…');
       const pool = finish ? trayTiles().filter((m) => !m.classic) : state.magnets.filter((m) => !m.classic);
-      const tiles = pool.map((m) => m.word);
-      const reply = await session.prompt(
-        L.poetPrompt({ tiles, style: $('ai-style').value, book: state.title, poem }),
-        { responseConstraint: L.POEM_SCHEMA },
-      );
+      const { tiles, prompt } = await fitPrompt(session, pool.map((m) => m.word), poem);
+      const reply = await session.prompt(prompt, { responseConstraint: L.POEM_SCHEMA });
+      // Some Chromium builds ship the API without a model; it just echoes.
+      if (/echoing back the input/.test(reply)) {
+        setAiStatus('This browser has the AI API but no model. Try the AI poet in Google Chrome on a desktop.');
+        return;
+      }
       const { title, lines } = L.linesFromIndices(JSON.parse(reply), tiles);
       if (!lines.length) throw new Error('The AI didn’t use any tiles.');
       setAiStatus('');

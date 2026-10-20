@@ -453,11 +453,11 @@
     love: { label: 'love note', ask: 'a tiny love note of 2 to 4 lines' },
   };
 
-  const POET_SYSTEM = 'You write fridge-magnet poems. You may only use the numbered word ' +
-    'tiles you are given, each tile at most once. Tiles that start with "-" are ' +
-    'suffixes that join the tile before them ("whale" then "-s" reads "whales"). ' +
-    'Answer only with JSON: a short title in your own words, and lines, where each ' +
-    'line is a list of tile numbers in reading order. Make it sound good read aloud.';
+  // Kept short: Chrome's on-device model can have as little as a
+  // 1,000-token window, and this rides along with every prompt.
+  const POET_SYSTEM = 'Write fridge-magnet poems using only the numbered tiles given, ' +
+    'each at most once. A "-" tile joins the word before it. Reply in JSON: a short ' +
+    'title, and lines as lists of tile numbers.';
 
   const POEM_SCHEMA = {
     type: 'object',
@@ -475,13 +475,30 @@
   };
 
   // poem: the lines already on the fridge, when asking to continue them.
+  // Tiles go in as "0 the, 1 whale, 2 -s": the most compact form that
+  // still reads clearly to a small model.
   function poetPrompt({ tiles, style, book, poem }) {
-    const list = tiles.map((w, i) => `${i}: ${w}`).join('\n');
+    const list = tiles.map((w, i) => `${i} ${w}`).join(', ');
     const s = POEM_STYLES[style] || POEM_STYLES.free;
     const task = poem
       ? `Here is a fridge poem in progress:\n${poem}\n\nContinue it with 1 to 3 more lines that fit it.`
       : `Write ${s.ask}.`;
     return `${task}\nThe tiles were cut from the book "${book}".\n\nTiles:\n${list}`;
+  }
+
+  // Order to offer tiles in when only some fit the model's window: glue
+  // and suffix tiles first (a poem needs them), then the rest shuffled.
+  // Returns indices into tiles.
+  function poetTileOrder(tiles, seed) {
+    const rand = mulberry32(seed);
+    const idx = tiles.map((_, i) => i);
+    const glue = idx.filter((i) => GLUE.includes(tiles[i]));
+    const rest = idx.filter((i) => !GLUE.includes(tiles[i]));
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    return [...glue, ...rest];
   }
 
   // Model answer → { title, lines of words }. Out-of-range, non-integer
@@ -502,7 +519,7 @@
     GLUE, pickTextFile, stripBoilerplate, countWords, bookStats, mulberry32, buildMagnets, readPoem,
     guessKind, templatePoem, fitToTiles,
     SHAPES, layoutPath, layoutRows, layoutShape, CLASSICS, classicTiles,
-    POEM_STYLES, POET_SYSTEM, POEM_SCHEMA, poetPrompt, linesFromIndices,
+    POEM_STYLES, POET_SYSTEM, POEM_SCHEMA, poetPrompt, poetTileOrder, linesFromIndices,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MagnetLib = api;
