@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Mint fridge door with a chrome handle and two word magnets. -->
+  <rect x="6" y="2" width="52" height="60" rx="12" fill="#bfe5d6" stroke="#86bfa9" stroke-width="3"/>
+  <rect x="46" y="10" width="5" height="22" rx="2.5" fill="#b9c0c4"/>
+  <rect x="12" y="14" width="26" height="12" rx="2" fill="#fffaf0" stroke="#d9c9ad" stroke-width="1.5" transform="rotate(-6 25 20)"/>
+  <rect x="17" y="18" width="16" height="3" rx="1.5" fill="#2b2420" transform="rotate(-6 25 20)"/>
+  <rect x="16" y="34" width="30" height="12" rx="2" fill="#ffd9d6" stroke="#e0a9a4" stroke-width="1.5" transform="rotate(5 31 40)"/>
+  <rect x="21" y="38" width="20" height="3" rx="1.5" fill="#c8323a" transform="rotate(5 31 40)"/>
+</svg>
