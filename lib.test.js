@@ -144,3 +144,60 @@ test('templatePoem: a fridge with only glue words still produces something sane'
   const { lines } = lib.fitToTiles(lib.templatePoem(lib.GLUE, 4), lib.GLUE);
   for (const l of lines) for (const w of l) assert.ok(lib.GLUE.includes(w));
 });
+
+// ---- shapes ----------------------------------------------------------------
+
+const boxes = (pos, sizes) => pos.map((p, i) => ({ ...p, w: sizes[i].w, h: sizes[i].h }));
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+const someTiles = (n) => Array.from({ length: n }, (_, i) => ({ w: 40 + (i * 37) % 60, h: 28 }));
+
+for (const name of Object.keys(lib.SHAPES)) {
+  test(`layoutShape(${name}): no two tiles overlap, all inside the box`, () => {
+    const sizes = someTiles(80);
+    const pos = lib.layoutShape(name, sizes, 700, 420);
+    assert.ok(pos.length >= 8, `${name} placed only ${pos.length}`);
+    const b = boxes(pos, sizes);
+    for (let i = 0; i < b.length; i++) {
+      assert.ok(b[i].x >= -1 && b[i].y >= -1 && b[i].x + b[i].w <= 701 && b[i].y + b[i].h <= 421,
+        `${name} tile ${i} outside: ${JSON.stringify(b[i])}`);
+      for (let j = i + 1; j < b.length; j++) {
+        assert.ok(!overlaps(b[i], b[j]), `${name} tiles ${i} and ${j} overlap`);
+      }
+    }
+  });
+}
+
+test('layoutRows: a diamond is narrow, then wide, then narrow again', () => {
+  const sizes = someTiles(60);
+  const pos = lib.layoutRows(sizes, lib.SHAPES.diamond.profile, 700, 420);
+  const rows = new Map();
+  pos.forEach((p, i) => {
+    const r = Math.round(p.y / 60);
+    const span = rows.get(r) || { min: Infinity, max: -Infinity };
+    rows.set(r, { min: Math.min(span.min, p.x), max: Math.max(span.max, p.x + sizes[i].w) });
+  });
+  const widths = [...rows.keys()].sort((a, b) => a - b).map((r) => rows.get(r).max - rows.get(r).min);
+  const mid = Math.floor(widths.length / 2);
+  assert.ok(widths[0] < widths[mid] && widths[widths.length - 1] < widths[mid], JSON.stringify(widths));
+  // Rows are centered.
+  for (const { min, max } of rows.values()) assert.ok(Math.abs((min + max) / 2 - 350) < 2);
+});
+
+test('layoutPath: stops when the path runs out instead of piling tiles up', () => {
+  const line = (t) => ({ x: t, y: 0.5 });
+  const pos = lib.layoutPath(someTiles(100), line, 300, 100);
+  assert.ok(pos.length > 2 && pos.length < 10, String(pos.length));
+});
+
+// ---- classics --------------------------------------------------------------
+
+test("classicTiles(mouse): every word of the Mouse's Tale, shrinking toward the tip", () => {
+  const tiles = lib.classicTiles('mouse');
+  const text = lib.CLASSICS.mouse.lines.map(([, t]) => t).join(' ');
+  assert.equal(tiles.map((t) => t.word).join(' '), text.split(/\s+/).join(' '));
+  assert.equal(tiles[0].word, '‘Fury');
+  assert.equal(tiles[0].scale, 1);
+  assert.equal(tiles[tiles.length - 1].word, 'death.”’');
+  assert.ok(Math.abs(tiles[tiles.length - 1].scale - 0.55) < 1e-9);
+  assert.equal(new Set(tiles.map((t) => t.line)).size, 44);
+});

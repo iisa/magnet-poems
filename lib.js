@@ -85,7 +85,7 @@
   // (frequent) words, and a larger pile of its rarer, stranger words.
   // minCount drops one-off tokens, which is where OCR junk lives.
   function buildMagnets(text, opts) {
-    const o = Object.assign({ seed: 1, common: 15, rare: 55, minCount: 2 }, opts);
+    const o = Object.assign({ seed: 1, common: 25, rare: 110, minCount: 2 }, opts);
     const rand = mulberry32(o.seed);
     const counts = countWords(stripBoilerplate(text));
     const candidates = [...counts.entries()]
@@ -195,9 +195,153 @@
     return { lines: kept, dropped };
   }
 
+  // ---- shapes --------------------------------------------------------------
+  // Shapes lay tiles out in a unit box (0..1 on both axes); the page scales
+  // the result to the fridge. Two kinds:
+  //   path: tiles follow a curve, spaced so neighbours don't overlap
+  //   rows: centered rows whose widths follow a profile (reads as lines)
+
+  const TAU = Math.PI * 2;
+  const SHAPES = {
+    heart: {
+      kind: 'path',
+      square: true,
+      // The classic heart curve, starting at the top dip.
+      at: (t) => {
+        const a = t * TAU;
+        const x = 16 * Math.sin(a) ** 3;
+        const y = 13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a);
+        // /40 leaves a margin so edge tiles still fit inside the box.
+        return { x: 0.5 + x / 40, y: 0.44 - y / 40 };
+      },
+    },
+    spiral: {
+      kind: 'path',
+      square: true,
+      at: (t) => {
+        const a = t * TAU * 2.1;
+        const r = 0.06 + 0.36 * t;
+        return { x: 0.5 + r * Math.cos(a), y: 0.5 + r * Math.sin(a) };
+      },
+    },
+    wave: {
+      kind: 'path',
+      // Two passes across, like a folded ribbon.
+      at: (t) => {
+        const second = t >= 0.5;
+        const u = second ? 1 - (t - 0.5) * 2 : t * 2;
+        return { x: 0.02 + u * 0.96, y: (second ? 0.72 : 0.28) + 0.16 * Math.sin(u * TAU * 1.5) };
+      },
+    },
+    diamond: { kind: 'rows', profile: [0.12, 0.3, 0.5, 0.7, 0.5, 0.3, 0.12] },
+    tree: { kind: 'rows', profile: [0.08, 0.22, 0.36, 0.5, 0.64, 0.78, 0.08, 0.08] },
+  };
+
+  // Place tiles (sizes in px) along shape.at, scaled to a w×h box. Walk the
+  // curve and put the next tile down at the first spot where it fits inside
+  // the box and clears every tile already placed. Returns top-left
+  // positions for as many tiles as fit.
+  function layoutPath(sizes, at, w, h, gap) {
+    const g = gap == null ? 6 : gap;
+    const placed = []; // boxes
+    const steps = 4000;
+    for (let s = 0; s <= steps && placed.length < sizes.length; s++) {
+      const p = at(s / steps);
+      const sz = sizes[placed.length];
+      const box = { x: p.x * w - sz.w / 2, y: p.y * h - sz.h / 2, w: sz.w, h: sz.h };
+      if (box.x < 0 || box.y < 0 || box.x + box.w > w || box.y + box.h > h) continue;
+      const hits = placed.some((o) => box.x < o.x + o.w + g && o.x < box.x + box.w + g &&
+        box.y < o.y + o.h + g && o.y < box.y + box.h + g);
+      if (!hits) placed.push(box);
+    }
+    return placed.map(({ x, y }) => ({ x, y }));
+  }
+
+  // Centered rows: each row takes tiles until it reaches its share of the
+  // width (always at least one). Returns top-left positions.
+  function layoutRows(sizes, profile, w, h, gap) {
+    const g = gap == null ? 6 : gap;
+    const rowH = h / profile.length;
+    const out = [];
+    let i = 0;
+    profile.forEach((share, r) => {
+      const target = share * w;
+      const row = [];
+      let width = 0;
+      while (i < sizes.length) {
+        const next = width + (row.length ? g : 0) + sizes[i].w;
+        if (row.length && next > target) break;
+        row.push(sizes[i]);
+        width = next;
+        i++;
+      }
+      let x = (w - width) / 2;
+      for (const sz of row) {
+        out.push({ x, y: r * rowH + (rowH - sz.h) / 2 });
+        x += sz.w + g;
+      }
+    });
+    return out;
+  }
+
+  function layoutShape(name, sizes, w, h) {
+    const shape = SHAPES[name];
+    if (shape.kind === 'rows') return layoutRows(sizes, shape.profile, w, h);
+    if (!shape.square) return layoutPath(sizes, shape.at, w, h);
+    // Keep round shapes round: fit a square box, centered.
+    const side = Math.min(w, h);
+    const dx = (w - side) / 2;
+    const dy = (h - side) / 2;
+    return layoutPath(sizes, shape.at, side, side).map((p) => ({ x: p.x + dx, y: p.y + dy }));
+  }
+
+  // ---- classics ------------------------------------------------------------
+  // Public domain shape poems that bring their own tiles. Each line is
+  // [indent in characters, text], copied from the source text on IA so the
+  // printed shape survives.
+
+  const CLASSICS = {
+    mouse: {
+      title: "The Mouse's Tale",
+      credit: "Lewis Carroll, Alice's Adventures in Wonderland (1865)",
+      source: 'alicesadventures00011gut',
+      shrink: true, // the original gets smaller as the tail tapers
+      lines: [
+        [20, '‘Fury said to a'], [19, 'mouse, That he'], [17, 'met in the'],
+        [15, 'house,'], [12, '“Let us'], [14, 'both go to'], [16, 'law: I will'],
+        [18, 'prosecute'], [20, 'YOU. —Come,'], [23, "I'll take no"],
+        [24, 'denial; We'], [21, 'must have a'], [17, 'trial: For'],
+        [14, 'really this'], [11, "morning I've"], [10, 'nothing'],
+        [9, 'to do.”'], [11, 'Said the'], [13, 'mouse to the'],
+        [15, 'cur, “Such'], [17, 'a trial,'], [19, 'dear Sir,'], [25, 'With'],
+        [21, 'no jury'], [18, 'or judge,'], [16, 'would be'], [14, 'wasting'],
+        [13, 'our'], [14, 'breath.”'], [15, '“I\'ll be'], [17, "judge, I'll"],
+        [19, 'be jury,”'], [25, 'Said'], [20, 'cunning'], [22, 'old Fury:'],
+        [21, '“I\'ll'], [22, 'try the'], [25, 'whole'], [26, 'cause,'],
+        [29, 'and'], [24, 'condemn'], [23, 'you'], [22, 'to'], [23, 'death.”’'],
+      ],
+    },
+  };
+
+  // Lines → tiles with a line index, indent, and scale (1 → 0.55 when the
+  // poem shrinks toward its end).
+  function classicTiles(name) {
+    const c = CLASSICS[name];
+    const n = c.lines.length;
+    const tiles = [];
+    c.lines.forEach(([indent, text], line) => {
+      const scale = c.shrink ? 1 - 0.45 * (line / (n - 1)) : 1;
+      text.split(/\s+/).filter(Boolean).forEach((word, k) => {
+        tiles.push({ word, line, indent, scale, first: k === 0 });
+      });
+    });
+    return tiles;
+  }
+
   const api = {
     GLUE, pickTextFile, stripBoilerplate, countWords, mulberry32, buildMagnets, readPoem,
     guessKind, templatePoem, fitToTiles,
+    SHAPES, layoutPath, layoutRows, layoutShape, CLASSICS, classicTiles,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MagnetLib = api;

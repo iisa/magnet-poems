@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Magnet Poems</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap">
   <link rel="stylesheet" href="style.css">
   <script src="lib.js" defer></script>
   <script src="app.js" defer></script>
@@ -15,48 +18,79 @@
   </header>
 
   <main>
-    <section class="controls" aria-label="Choose a book">
-      <form id="book-form">
-        <label for="book">Book</label>
-        <select id="book" name="book">
-          <option value="poemsbyemilydick02678gut">Poems, Series One (Emily Dickinson)</option>
-          <option value="leavesofgrass01322gut">Leaves of Grass (Walt Whitman)</option>
-          <option value="mobydick00015gut">Moby Dick (Herman Melville)</option>
-          <option value="frankenstein00084gut">Frankenstein (Mary Shelley)</option>
-          <option value="alicesadventures00011gut">Alice's Adventures in Wonderland (Lewis Carroll)</option>
-          <option value="curriesfarmgarde19curr_1">Currie's Farm &amp; Garden Annual, 1918 (scanned)</option>
-        </select>
-        <button type="submit">Load</button>
-        <button type="button" id="new-words">New words</button>
-      </form>
+    <section class="book-banner" aria-label="Current book">
+      <img id="current-cover" class="current-cover" alt="" hidden>
+      <div class="book-banner-text">
+        <p class="eyebrow">Today's magnets are cut from</p>
+        <p id="source" class="source"></p>
+        <details id="picker" class="picker">
+          <summary>Change book</summary>
+        <h2 id="books-h" class="visually-hidden">Pick a book</h2>
+        <ul id="books" class="books" aria-labelledby="books-h">
+          <!-- id: where the words come from; cover: a scanned edition on IA
+               with a real cover (Gutenberg items only have a generic icon). -->
+          <li><button type="button" class="book" data-id="poemsbyemilydick02678gut" data-cover="poemssucc00dickrich">
+            <img src="https://archive.org/services/img/poemssucc00dickrich" alt="" loading="lazy">
+            <span class="book-title">Poems</span> <span class="book-by">Emily Dickinson</span></button></li>
+          <li><button type="button" class="book" data-id="leavesofgrass01322gut" data-cover="whitmanleavesofgrass">
+            <img src="https://archive.org/services/img/whitmanleavesofgrass" alt="" loading="lazy">
+            <span class="book-title">Leaves of Grass</span> <span class="book-by">Walt Whitman</span></button></li>
+          <li><button type="button" class="book" data-id="mobydick00015gut" data-cover="mobydickorwhale01melv">
+            <img src="https://archive.org/services/img/mobydickorwhale01melv" alt="" loading="lazy">
+            <span class="book-title">Moby-Dick</span> <span class="book-by">Herman Melville</span></button></li>
+          <li><button type="button" class="book" data-id="frankenstein00084gut" data-cover="FrankensteinOrTheModernPromeusMaryWollstonecraftShelley">
+            <img src="https://archive.org/services/img/FrankensteinOrTheModernPromeusMaryWollstonecraftShelley" alt="" loading="lazy">
+            <span class="book-title">Frankenstein</span> <span class="book-by">Mary Shelley</span></button></li>
+          <li><button type="button" class="book" data-id="alicesadventures00011gut" data-cover="alicesadventures1901carr">
+            <img src="https://archive.org/services/img/alicesadventures1901carr" alt="" loading="lazy">
+            <span class="book-title">Alice's Adventures in Wonderland</span> <span class="book-by">Lewis Carroll</span></button></li>
+          <li><button type="button" class="book" data-id="curriesfarmgarde19curr_1" data-cover="curriesfarmgarde19curr_1">
+            <img src="https://archive.org/services/img/curriesfarmgarde19curr_1" alt="" loading="lazy">
+            <span class="book-title">Currie's Farm &amp; Garden Annual, 1918</span> <span class="book-by">scanned seed catalog</span></button></li>
+        </ul>
 
-      <form id="search-form" role="search">
-        <label for="q">Or search Project Gutenberg on archive.org</label>
-        <input id="q" name="q" type="search" placeholder="e.g. Keats, pirates, ghosts">
-        <button type="submit">Search</button>
-      </form>
-      <ul id="results" class="results"></ul>
-
-      <p id="source" class="source"></p>
+        <form id="search-form" role="search">
+          <label for="q">Or search Project Gutenberg on archive.org</label>
+          <input id="q" name="q" type="search" placeholder="e.g. Keats, pirates, ghosts">
+          <button type="submit">Search</button>
+        </form>
+        <ul id="results" class="books results" aria-label="Search results"></ul>
+        </details>
+      </div>
     </section>
 
     <section aria-labelledby="fridge-h">
       <h2 id="fridge-h" class="visually-hidden">Fridge</h2>
-      <div class="fridge-actions">
-        <button type="button" id="write">Write me a poem</button>
-        <button type="button" id="shake">Shake up</button>
-        <button type="button" id="clear">Clear poem</button>
+      <div id="fridge" class="fridge" aria-describedby="help"></div>
+    </section>
+
+    <!-- Direct child of main so it can stick to the bottom of the screen
+         the whole way down the fridge. -->
+    <div class="fridge-actions">
+      <button type="button" id="write">Write me a poem</button>
+      <button type="button" id="shape">Shape poem</button>
+      <button type="button" id="shake">Shake up</button>
+      <button type="button" id="new-words">New words</button>
+      <button type="button" id="clear">Clear poem</button>
+    </div>
+
+    <section class="controls" aria-labelledby="classics-h">
+      <h2 id="classics-h">Classic shape poems</h2>
+      <p class="help">Public domain poems printed in a shape, with their own tiles.</p>
+      <div class="classics">
+        <button type="button" class="classic-btn" data-classic="mouse">The Mouse's Tale <span class="book-by">Lewis Carroll, 1865</span></button>
       </div>
+
       <p id="help" class="help">
         Words start in the tray at the bottom of the fridge. Drag them above the
         line to write. Keyboard: Enter on a word sends it up, arrow keys move it
         (Shift for bigger steps), Delete sends it back to the tray.
       </p>
-      <div id="fridge" class="fridge" aria-describedby="help"></div>
     </section>
 
     <section aria-labelledby="poem-h" class="poem-wrap">
       <h2 id="poem-h">Your poem</h2>
+      <p id="poem-credit" class="source" hidden></p>
       <pre id="poem" class="poem"></pre>
       <button type="button" id="copy">Copy poem</button>
     </section>

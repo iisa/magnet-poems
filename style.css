@@ -1,29 +1,51 @@
+/* Retro kitchen: a 1950s mint fridge, cream tiles, cherry-red accents. */
+
 :root {
-  --bg: #f4f1ea;
-  --text: #1f1d1a;
-  --muted: #5c574f;
-  --fridge: #dfe5e8;
-  --fridge-edge: #b9c3c8;
-  --magnet: #fffdf8;
-  --magnet-text: #111;
-  --magnet-shadow: rgba(0, 0, 0, 0.25);
-  --suffix: #fbe7c6;
-  --accent: #2b5a8a;
-  --focus: #d4380d;
+  --bg: #fbf4e6;            /* kitchen wall cream */
+  --card: #fffaf0;
+  --text: #2b2420;
+  --muted: #6b5b4d;
+  --fridge: #bfe5d6;        /* mint door */
+  --fridge-deep: #a3d6c3;
+  --fridge-edge: #86bfa9;
+  --tray: rgba(32, 90, 70, 0.08);
+  --chrome-1: #f7f7f7;
+  --chrome-2: #b9c0c4;
+  --magnet: #fffaf0;
+  --magnet-text: #2b2420;
+  --magnet-shadow: rgba(60, 40, 20, 0.25);
+  --suffix: #ffd9d6;        /* cherry-blossom tiles */
+  --classic: #fff0b8;       /* butter tiles */
+  --accent: #c8323a;        /* cherry */
+  --accent-text: #fff;
+  --link: #a1262d;
+  --gingham: rgba(200, 50, 58, 0.22);
+  --focus: #1f6f5a;
+  --line: #e7d8bf;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #17191b;
-    --text: #ece8e1;
-    --muted: #a8a299;
-    --fridge: #2c3236;
-    --fridge-edge: #444d53;
-    --magnet: #f4f0e6;
-    --magnet-text: #111;
-    --magnet-shadow: rgba(0, 0, 0, 0.6);
-    --suffix: #f2d39d;
-    --accent: #8fb8e6;
-    --focus: #ff9a6b;
+    --bg: #1d1a17;
+    --card: #2a2420;
+    --text: #f3ebdd;
+    --muted: #c3b4a2;
+    --fridge: #2f5a4e;
+    --fridge-deep: #264a40;
+    --fridge-edge: #3f7666;
+    --tray: rgba(0, 0, 0, 0.18);
+    --chrome-1: #d9dde0;
+    --chrome-2: #7f878c;
+    --magnet: #fbf4e6;
+    --magnet-text: #2b2420;
+    --magnet-shadow: rgba(0, 0, 0, 0.55);
+    --suffix: #f6c9c5;
+    --classic: #f6e7a6;
+    --accent: #e0545b;
+    --accent-text: #1d1a17;
+    --link: #ff9a9f;
+    --gingham: rgba(224, 84, 91, 0.25);
+    --focus: #8fe3c8;
+    --line: #4a3f36;
   }
 }
 
@@ -34,66 +56,198 @@ body {
   color: var(--text);
   font: 16px/1.5 system-ui, -apple-system, sans-serif;
 }
+/* Gingham strip across the top, like a kitchen curtain. */
+body::before {
+  content: "";
+  display: block;
+  height: 18px;
+  background:
+    repeating-linear-gradient(90deg, var(--gingham) 0 12px, transparent 12px 24px),
+    repeating-linear-gradient(0deg, var(--gingham) 0 9px, transparent 9px 18px);
+}
 header, main { max-width: 1000px; margin: 0 auto; padding: 0 16px; }
-header { padding-top: 24px; }
-h1 { margin: 0; font-family: Georgia, serif; font-size: 2rem; }
+header { padding-top: 20px; text-align: center; }
+h1 {
+  margin: 0;
+  font-family: 'Pacifico', 'Brush Script MT', cursive;
+  font-weight: 400;
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+h1::before, h1::after { content: "✿" / ""; font-family: system-ui, sans-serif; font-size: 0.55em; vertical-align: middle; margin: 0 0.4em; }
 h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+.tagline { margin: 2px 0 0; }
 .tagline, .help, .count { color: var(--muted); }
 .help { font-size: 0.9rem; margin: 16px 0 8px; }
-a { color: var(--accent); }
+a { color: var(--link); text-underline-offset: 2px; }
 
 form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
 form label { width: 100%; font-weight: 600; }
-select, input, button {
+input, button {
   font: inherit;
-  padding: 6px 10px;
-  border: 1px solid var(--fridge-edge);
-  border-radius: 6px;
-  background: var(--bg);
+  padding: 6px 14px;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  background: var(--card);
   color: var(--text);
 }
-select, input { flex: 1 1 220px; min-width: 0; }
-button { cursor: pointer; }
+input { flex: 1 1 220px; min-width: 0; border-color: var(--line); }
+button { cursor: pointer; font-weight: 600; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+button:hover { transform: translateY(-1px); box-shadow: 0 2px 0 var(--magnet-shadow); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-.results { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
-.results button { width: 100%; text-align: left; }
+/* ---- current book: a little recipe card above the fridge ---------------- */
+
+.book-banner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  align-items: start;
+  margin: 18px 0;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 2px dashed var(--line);
+  border-radius: 16px;
+}
+.current-cover {
+  height: 96px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 2px 3px 0 var(--line), 2px 3px 8px var(--magnet-shadow);
+  transform: rotate(-2deg);
+}
+.eyebrow { margin: 0; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.book-banner .source { margin: 2px 0 8px; font-size: 1.2rem; font-family: Georgia, serif; }
+.picker > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+.picker > summary::-webkit-details-marker { display: none; }
+.picker > summary::after { content: "▾" / ""; font-size: 0.8em; }
+.picker[open] > summary::after { content: "▴" / ""; }
+.picker[open] > summary { margin-bottom: 12px; }
+
+.books {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+.book {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px;
+  text-align: left;
+  font-weight: 400;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+}
+.book:hover { transform: translateY(-2px) rotate(-0.5deg); }
+.book img, .typeset-cover {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 1px 2px 4px var(--magnet-shadow);
+  margin-bottom: 4px;
+  background: var(--fridge);
+}
+.typeset-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  font: 600 0.85rem/1.25 Georgia, serif;
+  text-align: center;
+  color: hsl(var(--hue) 40% 92%);
+  background: hsl(var(--hue) 35% 30%);
+  border: 3px double hsl(var(--hue) 40% 70%);
+  overflow: hidden;
+}
+.book-title { font-weight: 600; font-size: 0.9rem; line-height: 1.25; }
+.book-by { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+.book[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .source { font-style: italic; }
+
+/* ---- the fridge ------------------------------------------------------------ */
 
 .fridge {
   position: relative;
   height: 560px; /* app.js grows this to fit the tray */
   background:
-    /* tray line: POEM_H in app.js */
-    linear-gradient(var(--fridge-edge), var(--fridge-edge)) 0 320px / 100% 2px no-repeat,
-    linear-gradient(160deg, var(--fridge), var(--fridge-edge));
-  border: 1px solid var(--fridge-edge);
-  border-radius: 14px;
+    /* tray line + shelf below it: --poem-h is set by app.js */
+    linear-gradient(var(--fridge-edge), var(--fridge-edge)) 0 var(--poem-h, 320px) / 100% 3px no-repeat,
+    linear-gradient(transparent var(--poem-h, 320px), var(--tray) var(--poem-h, 320px)),
+    /* soft enamel sheen */
+    radial-gradient(120% 60% at 20% 0%, rgba(255, 255, 255, 0.45), transparent 60%),
+    linear-gradient(175deg, var(--fridge), var(--fridge-deep));
+  border: 3px solid var(--fridge-edge);
+  border-radius: 28px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 6px 0 var(--fridge-edge), 0 10px 18px var(--magnet-shadow);
   overflow: hidden;
   touch-action: none;
 }
-
-.fridge-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-#write { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-#write[aria-busy="true"] { opacity: 0.6; cursor: progress; }
+/* Chrome door handle and a strawberry magnet: decoration only, under the tiles. */
+.fridge::after {
+  content: "";
+  position: absolute;
+  top: 36px;
+  right: 14px;
+  width: 12px;
+  height: 140px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--chrome-2), var(--chrome-1) 40%, var(--chrome-2));
+  box-shadow: 1px 2px 3px var(--magnet-shadow);
+  pointer-events: none;
+}
+.fridge::before {
+  content: "🍓" / "";
+  position: absolute;
+  right: 40px;
+  bottom: 14px;
+  font-size: 2rem;
+  transform: rotate(12deg);
+  filter: drop-shadow(1px 2px 1px var(--magnet-shadow));
+  pointer-events: none;
+}
 
 .magnet {
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 1rem;
-  padding: 2px 8px;
+  padding: 3px 9px;
   border: none;
-  border-radius: 2px;
+  border-radius: 5px;
   background: var(--magnet);
   color: var(--magnet-text);
-  box-shadow: 1px 2px 3px var(--magnet-shadow);
+  font-weight: 400;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 1px 2px 0 var(--magnet-shadow), 1px 3px 4px var(--magnet-shadow);
   white-space: nowrap;
   touch-action: none;
   user-select: none;
   cursor: grab;
 }
+.magnet:hover { transform: rotate(var(--tilt, 0deg)) translateY(-1px); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 2px 4px 0 var(--magnet-shadow), 2px 5px 6px var(--magnet-shadow); }
 .magnet.suffix { background: var(--suffix); }
-.fridge .magnet { position: absolute; transform: rotate(var(--tilt, 0deg)); }
-.fridge.animate .magnet { transition: left 0.5s ease, top 0.5s ease; }
+.magnet.classic { background: var(--classic); padding: 1px 6px; }
+.fridge .magnet { position: absolute; z-index: 1; transform: rotate(var(--tilt, 0deg)); }
+.fridge.animate .magnet { transition: left 0.5s cubic-bezier(.3, 1.4, .5, 1), top 0.5s cubic-bezier(.3, 1.4, .5, 1); }
 .fridge.shaking { animation: wobble 0.45s ease; }
 @keyframes wobble {
   20% { transform: translateX(-8px) rotate(-0.6deg); }
@@ -101,21 +255,58 @@ button { cursor: pointer; }
   60% { transform: translateX(-5px); }
   80% { transform: translateX(3px); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .fridge.animate .magnet { transition: none; }
-  .fridge.shaking { animation: none; }
-}
 body.is-dragging { user-select: none; -webkit-user-select: none; }
-.magnet.dragging { cursor: grabbing; z-index: 10; box-shadow: 3px 6px 10px var(--magnet-shadow); }
+.magnet.dragging { cursor: grabbing; z-index: 10; box-shadow: 4px 8px 12px var(--magnet-shadow); }
 
+/* ---- controls -------------------------------------------------------------- */
+
+.fridge-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 0 12px;
+  background: var(--bg);
+  border-top: 4px solid transparent;
+  border-image: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 16px) 4;
+}
+#write { background: var(--accent); color: var(--accent-text); }
+#write[aria-busy="true"] { opacity: 0.6; cursor: progress; }
+
+.controls h2, .poem-wrap h2 { font-family: 'Pacifico', cursive; font-weight: 400; color: var(--accent); font-size: 1.4rem; }
+.classics { display: flex; flex-wrap: wrap; gap: 8px; }
+.classic-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  border-radius: 14px;
+  background: var(--classic);
+  color: var(--magnet-text);
+}
+.classic-btn .book-by { color: #6b5b4d; }
+
+.poem-wrap {
+  margin: 24px 0 48px;
+  padding: 4px 20px 16px;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 2px 0 var(--line);
+}
 .poem {
   font-family: Georgia, serif;
   font-size: 1.1rem;
+  line-height: 32px;
+  /* ruled notebook lines under each line of the poem */
+  background: repeating-linear-gradient(transparent 0 31px, var(--line) 31px 32px);
   white-space: pre-wrap;
   margin: 0 0 8px;
   min-height: 2em;
 }
-.poem-wrap { padding-bottom: 48px; }
 
 .visually-hidden {
   position: absolute !important;
@@ -123,4 +314,11 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fridge.animate .magnet { transition: none; }
+  .fridge.shaking { animation: none; }
+  button:hover, .book:hover, .magnet:hover { transform: none; }
+  .fridge .magnet:hover { transform: rotate(var(--tilt, 0deg)); }
 }
