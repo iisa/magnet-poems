@@ -60,6 +60,15 @@
     return counts;
   }
 
+  // Size of a book after boilerplate is stripped: every word, and how
+  // many different ones. Shown in the banner next to the fridge's tiles.
+  function bookStats(text) {
+    const counts = countWords(stripBoilerplate(text));
+    let total = 0;
+    for (const c of counts.values()) total += c;
+    return { total, unique: counts.size };
+  }
+
   // Deterministic PRNG so ?seed= reproduces the same fridge.
   function mulberry32(seed) {
     let a = seed >>> 0;
@@ -432,7 +441,7 @@
   }
 
   const api = {
-    GLUE, pickTextFile, stripBoilerplate, countWords, mulberry32, buildMagnets, readPoem,
+    GLUE, pickTextFile, stripBoilerplate, countWords, bookStats, mulberry32, buildMagnets, readPoem,
     guessKind, templatePoem, fitToTiles,
     SHAPES, layoutPath, layoutRows, layoutShape, CLASSICS, classicTiles,
   };

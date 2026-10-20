@@ -108,6 +108,7 @@
     cursor = { x: PAD, y: PAD };
     packTray(state.magnets);
     renderSource();
+    renderStats();
     renderPoem();
     const url = new URL(location.href);
     url.searchParams.set('book', state.id);
@@ -135,6 +136,14 @@
       c.textContent = state.collection.fullTitle;
       col.append('in the ', c, state.collection.from ? ` · ${state.collection.from}` : '');
     }
+  }
+
+  // "212,483 words · 17,104 different · 161 magnets on this fridge"
+  function renderStats() {
+    const n = (x) => x.toLocaleString();
+    const { total, unique } = L.bookStats(state.text);
+    const tiles = state.magnets.filter((m) => !m.classic).length;
+    $('stats').textContent = `${n(total)} words · ${n(unique)} different · ${n(tiles)} magnets on this fridge`;
   }
 
   function showCover(id) {
@@ -475,7 +484,7 @@
       books: [
         { id: 'poemsbyemilydick02678gut', cover: 'poemssucc00dickrich', title: 'Poems', by: 'Emily Dickinson' },
         { id: 'leavesofgrass01322gut', cover: 'leavesofgrass00inwhit', title: 'Leaves of Grass', by: 'Walt Whitman' },
-        { id: 'mobydick00015gut', cover: 'mobydickorwhale01melv', title: 'Moby-Dick', by: 'Herman Melville' },
+        { id: 'mobydickorthewha02701gut', cover: 'mobydickorwhale01melv', title: 'Moby-Dick', by: 'Herman Melville' },
         { id: 'frankenstein00084gut', cover: 'cu31924105428902', title: 'Frankenstein', by: 'Mary Shelley' },
         { id: 'alicesadventures00011gut', cover: 'alicesadventures1901carr', title: "Alice's Adventures in Wonderland", by: 'Lewis Carroll' },
       ],
@@ -515,10 +524,10 @@
       fullTitle: 'Duke University Libraries collection',
       blurb: 'Poetry and fiction from Duke’s scanned collections.',
       books: [
-        { id: 'cane01toom', title: 'Cane', by: 'Jean Toomer, 1923' },
         { id: 'smokygodorvoyage00emer', title: 'The smoky god', by: 'Willis George Emerson, 1908' },
         { id: 'whensleeperwakes00well', title: 'When the sleeper wakes', by: 'H. G. Wells, 1899' },
         { id: 'songspoemsofgrea00tull', title: 'Songs and poems of the great world war', by: '1915' },
+        { id: 'acrosszodiacstor01greg', title: 'Across the zodiac', by: 'Percy Greg, 1880' },
       ],
       moreQuery: 'subject:(poetry OR fiction OR poems)', // keep the big shelf on-theme
     },

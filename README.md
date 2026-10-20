@@ -10,10 +10,10 @@ Jump straight to a fridge:
 
 | Shelf | Try |
 |---|---|
-| 📖 Project Gutenberg | [Emily Dickinson's *Poems*](https://iisa.github.io/magnet-poems/?book=poemsbyemilydick02678gut) · [*Moby-Dick*](https://iisa.github.io/magnet-poems/?book=mobydick00015gut) · [*Alice in Wonderland*](https://iisa.github.io/magnet-poems/?book=alicesadventures00011gut) |
+| 📖 Project Gutenberg | [Emily Dickinson's *Poems*](https://iisa.github.io/magnet-poems/?book=poemsbyemilydick02678gut) · [*Moby-Dick*](https://iisa.github.io/magnet-poems/?book=mobydickorthewha02701gut) · [*Alice in Wonderland*](https://iisa.github.io/magnet-poems/?book=alicesadventures00011gut) |
 | 🌱 Seed catalogs | [Alneer Brothers, 1896](https://iisa.github.io/magnet-poems/?book=alneerbrothersil00alne) · [Thorburn's seeds, 1908](https://iisa.github.io/magnet-poems/?book=CAT31289649) |
 | 🧒 Children's books | [*The Wind in the Willows*](https://iisa.github.io/magnet-poems/?book=windinwillowsgrah) · [*The Real Mother Goose*](https://iisa.github.io/magnet-poems/?book=realmothergoosewrig) |
-| 📚 Duke University Libraries | [Jean Toomer's *Cane*](https://iisa.github.io/magnet-poems/?book=cane01toom) · [*The Smoky God*](https://iisa.github.io/magnet-poems/?book=smokygodorvoyage00emer) |
+| 📚 Duke University Libraries | [*Across the Zodiac*, 1880](https://iisa.github.io/magnet-poems/?book=acrosszodiacstor01greg) · [*The Smoky God*](https://iisa.github.io/magnet-poems/?book=smokygodorvoyage00emer) |
 
 Source: https://github.com/iisa/magnet-poems
 

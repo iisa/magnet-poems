@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const lib = require('./lib.js');
 
 test('pickTextFile: full Gutenberg text beats chapter files and _meta noise', () => {
-  // Shape of mobydick00015gut's file list (trimmed).
+  // An item with per-chapter files plus one full text (made-up sizes).
   const files = [
     { name: 'moby-000.txt', size: '4000' },
     { name: 'moby-001.txt', size: '12000' },
@@ -48,6 +48,12 @@ test('stripBoilerplate: old 1990s SMALL PRINT header (Dickinson 1mlyd10.txt styl
 
 test('stripBoilerplate: unmarked text passes through', () => {
   assert.equal(lib.stripBoilerplate('just a seed catalog'), 'just a seed catalog');
+});
+
+test('bookStats: counts words and different words, ignoring Gutenberg boilerplate', () => {
+  const t = 'license words here\n*** START OF THE PROJECT GUTENBERG EBOOK X ***\n' +
+    'The whale, the WHALE! Call me Ishmael.\n*** END OF THE PROJECT GUTENBERG EBOOK X ***\nmore license';
+  assert.deepEqual(lib.bookStats(t), { total: 7, unique: 5 }); // the, whale, call, me, ishmael
 });
 
 test('buildMagnets: one-off OCR junk never becomes a magnet', () => {
