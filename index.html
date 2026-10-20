@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Magnet Poems</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="lib.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Magnet Poems</h1>
+    <p class="tagline">Fridge poetry from public domain books on the Internet Archive.</p>
+  </header>
+
+  <main>
+    <section class="controls" aria-label="Choose a book">
+      <form id="book-form">
+        <label for="book">Book</label>
+        <select id="book" name="book">
+          <option value="poemsbyemilydick02678gut">Poems, Series One (Emily Dickinson)</option>
+          <option value="leavesofgrass01322gut">Leaves of Grass (Walt Whitman)</option>
+          <option value="mobydick00015gut">Moby Dick (Herman Melville)</option>
+          <option value="frankenstein00084gut">Frankenstein (Mary Shelley)</option>
+          <option value="alicesadventures00011gut">Alice's Adventures in Wonderland (Lewis Carroll)</option>
+          <option value="curriesfarmgarde19curr_1">Currie's Farm &amp; Garden Annual, 1918 (scanned)</option>
+        </select>
+        <button type="submit">Load</button>
+        <button type="button" id="new-words">New words</button>
+      </form>
+
+      <form id="search-form" role="search">
+        <label for="q">Or search Project Gutenberg on archive.org</label>
+        <input id="q" name="q" type="search" placeholder="e.g. Keats, pirates, ghosts">
+        <button type="submit">Search</button>
+      </form>
+      <ul id="results" class="results"></ul>
+
+      <p id="source" class="source"></p>
+    </section>
+
+    <section aria-labelledby="fridge-h">
+      <h2 id="fridge-h" class="visually-hidden">Fridge</h2>
+      <div class="fridge-actions">
+        <button type="button" id="write">Write me a poem</button>
+        <button type="button" id="shake">Shake up</button>
+        <button type="button" id="clear">Clear poem</button>
+      </div>
+      <p id="help" class="help">
+        Words start in the tray at the bottom of the fridge. Drag them above the
+        line to write. Keyboard: Enter on a word sends it up, arrow keys move it
+        (Shift for bigger steps), Delete sends it back to the tray.
+      </p>
+      <div id="fridge" class="fridge" aria-describedby="help"></div>
+    </section>
+
+    <section aria-labelledby="poem-h" class="poem-wrap">
+      <h2 id="poem-h">Your poem</h2>
+      <pre id="poem" class="poem"></pre>
+      <button type="button" id="copy">Copy poem</button>
+    </section>
+  </main>
+
+  <div id="announce" class="visually-hidden" aria-live="polite"></div>
+</body>
+</html>
