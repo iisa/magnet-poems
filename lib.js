@@ -202,8 +202,39 @@
   //   rows: centered rows whose widths follow a profile (reads as lines)
 
   const TAU = Math.PI * 2;
+
+  // Path helpers. Each returns at(t) → {x, y} for t in 0..1.
+  const ring = (cx, cy, r, from, to) => (t) => {
+    const a = ((from || 0) + ((to == null ? 1 : to) - (from || 0)) * t) * TAU;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  };
+  // Straight lines through the points in order, each edge an equal share of t.
+  const poly = (pts) => (t) => {
+    const n = pts.length - 1;
+    const f = Math.min(t * n, n - 1e-9);
+    const i = Math.floor(f);
+    const u = f - i;
+    return { x: pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, y: pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u };
+  };
+  // Several curves drawn one after another (pen lifts between them);
+  // weight sets each part's share of t, roughly its length.
+  const joined = (parts) => {
+    const total = parts.reduce((sum, [w]) => sum + w, 0);
+    return (t) => {
+      let acc = 0;
+      for (const [w, at] of parts) {
+        const share = w / total;
+        if (t <= acc + share) return at((t - acc) / share);
+        acc += share;
+      }
+      return parts[parts.length - 1][1](1);
+    };
+  };
+
+  // Order here is the order of the picker and of "Surprise me".
   const SHAPES = {
     heart: {
+      label: '♥ heart',
       kind: 'path',
       square: true,
       // The classic heart curve, starting at the top dip.
@@ -215,7 +246,51 @@
         return { x: 0.5 + x / 40, y: 0.44 - y / 40 };
       },
     },
+    star: {
+      label: '★ star',
+      kind: 'path',
+      square: true,
+      at: poly(Array.from({ length: 11 }, (_, k) => {
+        const a = (-90 + k * 36) * Math.PI / 180;
+        const r = k % 2 ? 0.19 : 0.46;
+        return [0.5 + r * Math.cos(a), 0.53 + r * Math.sin(a)];
+      })),
+    },
+    smiley: {
+      label: '☺ smiley',
+      kind: 'path',
+      square: true,
+      at: joined([
+        [6, ring(0.5, 0.5, 0.44)],
+        [0.6, ring(0.36, 0.38, 0.05)],
+        [0.6, ring(0.64, 0.38, 0.05)],
+        [2, ring(0.5, 0.5, 0.25, 0.1, 0.4)], // bottom arc: y grows downward
+      ]),
+    },
+    flower: {
+      label: '✿ flower',
+      kind: 'path',
+      square: true,
+      // Five-petal rose curve.
+      at: (t) => {
+        const a = t * Math.PI;
+        const r = 0.44 * Math.cos(5 * a);
+        return { x: 0.5 + r * Math.cos(a), y: 0.5 + r * Math.sin(a) };
+      },
+    },
+    moon: {
+      label: '☾ moon',
+      kind: 'path',
+      square: true,
+      // Outer arc round the left, then the inner arc back.
+      at: joined([
+        [3, ring(0.5, 0.5, 0.44, 0.2, 0.8)],
+        [2, ring(0.68, 0.5, 0.34, 0.75, 0.25)],
+      ]),
+    },
+    circle: { label: '○ circle', kind: 'path', square: true, at: ring(0.5, 0.5, 0.44, 0.75, 1.75) },
     spiral: {
+      label: '@ spiral',
       kind: 'path',
       square: true,
       at: (t) => {
@@ -224,7 +299,18 @@
         return { x: 0.5 + r * Math.cos(a), y: 0.5 + r * Math.sin(a) };
       },
     },
+    infinity: {
+      label: '∞ infinity',
+      kind: 'path',
+      // Lemniscate of Bernoulli.
+      at: (t) => {
+        const a = t * TAU;
+        const d = 1 + Math.sin(a) ** 2;
+        return { x: 0.5 + (0.46 * Math.cos(a)) / d, y: 0.5 + (0.8 * Math.sin(a) * Math.cos(a)) / d };
+      },
+    },
     wave: {
+      label: '〰 wave',
       kind: 'path',
       // Two passes across, like a folded ribbon.
       at: (t) => {
@@ -233,8 +319,15 @@
         return { x: 0.02 + u * 0.96, y: (second ? 0.72 : 0.28) + 0.16 * Math.sin(u * TAU * 1.5) };
       },
     },
-    diamond: { kind: 'rows', profile: [0.12, 0.3, 0.5, 0.7, 0.5, 0.3, 0.12] },
-    tree: { kind: 'rows', profile: [0.08, 0.22, 0.36, 0.5, 0.64, 0.78, 0.08, 0.08] },
+    lightning: {
+      label: 'ϟ lightning',
+      kind: 'path',
+      at: poly([[0.62, 0.02], [0.36, 0.5], [0.6, 0.5], [0.4, 0.98]]),
+    },
+    diamond: { label: '◆ diamond', kind: 'rows', profile: [0.12, 0.3, 0.5, 0.7, 0.5, 0.3, 0.12] },
+    tree: { label: '🌲 tree', kind: 'rows', profile: [0.08, 0.22, 0.36, 0.5, 0.64, 0.78, 0.08, 0.08] },
+    house: { label: '⌂ house', kind: 'rows', profile: [0.1, 0.28, 0.46, 0.64, 0.5, 0.5, 0.5] },
+    hourglass: { label: '⌛ hourglass', kind: 'rows', profile: [0.7, 0.5, 0.3, 0.1, 0.3, 0.5, 0.7] },
   };
 
   // Place tiles (sizes in px) along shape.at, scaled to a w×h box. Walk the

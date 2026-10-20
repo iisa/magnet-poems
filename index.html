@@ -68,7 +68,13 @@
          the whole way down the fridge. -->
     <div class="fridge-actions">
       <button type="button" id="write">Write me a poem</button>
-      <button type="button" id="shape">Shape poem</button>
+      <span class="shape-group">
+        <button type="button" id="shape">Shape poem</button>
+        <label class="visually-hidden" for="shape-pick">Shape</label>
+        <select id="shape-pick">
+          <option value="">✨ surprise me</option>
+        </select>
+      </span>
       <button type="button" id="shake">Shake up</button>
       <button type="button" id="new-words">New words</button>
       <button type="button" id="clear">Clear poem</button>

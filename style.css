@@ -275,6 +275,20 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   border-image: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 16px) 4;
 }
 #write { background: var(--accent); color: var(--accent-text); }
+/* Shape button + picker read as one pill. */
+.shape-group { display: inline-flex; }
+.shape-group #shape { border-radius: 999px 0 0 999px; }
+.shape-group select {
+  font: inherit;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 2px solid var(--accent);
+  border-left: none;
+  border-radius: 0 999px 999px 0;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
 #write[aria-busy="true"] { opacity: 0.6; cursor: progress; }
 
 .controls h2, .poem-wrap h2 { font-family: 'Pacifico', cursive; font-weight: 400; color: var(--accent); font-size: 1.4rem; }

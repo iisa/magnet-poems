@@ -319,15 +319,19 @@
 
   // ---- shapes ----------------------------------------------------------
 
-  const SHAPE_ORDER = ['heart', 'spiral', 'diamond', 'wave', 'tree'];
+  const SHAPE_ORDER = Object.keys(L.SHAPES);
   let shapeIndex = 0;
+  for (const name of SHAPE_ORDER) {
+    $('shape-pick').append(new Option(L.SHAPES[name].label, name));
+  }
 
   // Pour tiles into the next shape: the poet's words first so it reads a
   // little, then the rest of the tray in random order.
   async function shapePoem() {
     leaveClassic();
     setPoemH(SHAPE_H);
-    const name = SHAPE_ORDER[shapeIndex++ % SHAPE_ORDER.length];
+    // A picked shape, or "surprise me" walks through them all in turn.
+    const name = $('shape-pick').value || SHAPE_ORDER[shapeIndex++ % SHAPE_ORDER.length];
     const tiles = state.magnets.map((m) => m.word);
     const { lines } = L.fitToTiles(await POETS[POET](tiles, rnd()), tiles);
     const free = state.magnets.filter((m) => !m.word.startsWith('-'));
@@ -495,6 +499,9 @@
   $('new-words').addEventListener('click', () => { if (state.text) dealWords(); });
   $('write').addEventListener('click', () => { if (state.magnets.length) writePoem(); });
   $('shape').addEventListener('click', () => { if (state.magnets.length) shapePoem(); });
+  $('shape-pick').addEventListener('change', () => {
+    if (state.magnets.length && $('shape-pick').value) shapePoem();
+  });
   document.querySelectorAll('.classic-btn').forEach((b) => {
     b.addEventListener('click', () => { if (state.magnets.length) showClassic(b.dataset.classic); });
   });
