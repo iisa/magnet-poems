@@ -138,6 +138,12 @@ button:hover { transform: translateY(-1px); box-shadow: 0 2px 0 var(--magnet-sha
 .picker[open] > summary::after { content: "▴" / ""; }
 .picker[open] > summary { margin-bottom: 12px; }
 
+.collection { margin: -4px 0 8px; font-size: 0.9rem; color: var(--muted); }
+.shelf { margin-bottom: 20px; }
+.shelf h3 { margin: 8px 0 0; font-size: 1.05rem; }
+.shelf .help { margin: 2px 0 10px; }
+.shelf-link { font-size: 0.8rem; font-weight: 400; margin-left: 6px; }
+.more { margin-top: 4px; }
 .books {
   list-style: none;
   padding: 0;

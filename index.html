@@ -23,32 +23,11 @@
       <div class="book-banner-text">
         <p class="eyebrow">Today's magnets are cut from</p>
         <p id="source" class="source"></p>
+        <p id="collection" class="collection" hidden></p>
         <details id="picker" class="picker">
           <summary>Change book</summary>
-        <h2 id="books-h" class="visually-hidden">Pick a book</h2>
-        <ul id="books" class="books" aria-labelledby="books-h">
-          <!-- id: where the words come from; cover: a scanned edition on IA
-               with a real cover (Gutenberg items only have a generic icon). -->
-          <li><button type="button" class="book" data-id="poemsbyemilydick02678gut" data-cover="poemssucc00dickrich">
-            <img src="https://archive.org/services/img/poemssucc00dickrich" alt="" loading="lazy">
-            <span class="book-title">Poems</span> <span class="book-by">Emily Dickinson</span></button></li>
-          <li><button type="button" class="book" data-id="leavesofgrass01322gut" data-cover="whitmanleavesofgrass">
-            <img src="https://archive.org/services/img/whitmanleavesofgrass" alt="" loading="lazy">
-            <span class="book-title">Leaves of Grass</span> <span class="book-by">Walt Whitman</span></button></li>
-          <li><button type="button" class="book" data-id="mobydick00015gut" data-cover="mobydickorwhale01melv">
-            <img src="https://archive.org/services/img/mobydickorwhale01melv" alt="" loading="lazy">
-            <span class="book-title">Moby-Dick</span> <span class="book-by">Herman Melville</span></button></li>
-          <li><button type="button" class="book" data-id="frankenstein00084gut" data-cover="FrankensteinOrTheModernPromeusMaryWollstonecraftShelley">
-            <img src="https://archive.org/services/img/FrankensteinOrTheModernPromeusMaryWollstonecraftShelley" alt="" loading="lazy">
-            <span class="book-title">Frankenstein</span> <span class="book-by">Mary Shelley</span></button></li>
-          <li><button type="button" class="book" data-id="alicesadventures00011gut" data-cover="alicesadventures1901carr">
-            <img src="https://archive.org/services/img/alicesadventures1901carr" alt="" loading="lazy">
-            <span class="book-title">Alice's Adventures in Wonderland</span> <span class="book-by">Lewis Carroll</span></button></li>
-          <li><button type="button" class="book" data-id="curriesfarmgarde19curr_1" data-cover="curriesfarmgarde19curr_1">
-            <img src="https://archive.org/services/img/curriesfarmgarde19curr_1" alt="" loading="lazy">
-            <span class="book-title">Currie's Farm &amp; Garden Annual, 1918</span> <span class="book-by">scanned seed catalog</span></button></li>
-        </ul>
-
+        <h2 class="visually-hidden">Pick a book</h2>
+        <div id="shelves"></div>
         <form id="search-form" role="search">
           <label for="q">Or search Project Gutenberg on archive.org</label>
           <input id="q" name="q" type="search" placeholder="e.g. Keats, pirates, ghosts">

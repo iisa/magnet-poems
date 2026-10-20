@@ -70,13 +70,10 @@
     document.querySelectorAll('.book').forEach((b) => {
       b.setAttribute('aria-pressed', String(b.dataset.id === id));
     });
-    // Collapse the picker and show this book's cover in its summary
-    // (search results have no real cover, so none is shown).
+    // Collapse the picker and show this book's cover in the banner.
     $('picker').open = false;
     const card = document.querySelector(`.book[data-id="${CSS.escape(id)}"][data-cover]`);
-    const thumb = $('current-cover');
-    thumb.hidden = !card;
-    if (card) thumb.src = `https://archive.org/services/img/${encodeURIComponent(card.dataset.cover)}`;
+    showCover(card && card.dataset.cover);
     try {
       const meta = await (await fetch(`https://archive.org/metadata/${encodeURIComponent(id)}`)).json();
       const file = L.pickTextFile(meta.files);
@@ -90,7 +87,10 @@
         creator: [].concat(m.creator || '')[0],
         text: await res.text(),
         isOcr: /_djvu\.txt$/i.test(file),
+        collection: shelfFor([].concat(m.collection || [])),
       });
+      // A scan is its own cover (Gutenberg items only have a generic icon).
+      if (!card && state.isOcr) showCover(id);
       dealWords(seed);
     } catch (err) {
       $('source').textContent = `Couldn't load that book: ${err.message}`;
@@ -124,6 +124,23 @@
     a.href = `https://archive.org/details/${encodeURIComponent(state.id)}`;
     a.textContent = state.title;
     src.append(a, state.creator ? ` by ${state.creator}` : '', state.isOcr ? ' (scanned; expect a few odd words)' : '');
+
+    // Which IA collection it's from, linked, so the data leads back there.
+    const col = $('collection');
+    col.textContent = '';
+    col.hidden = !state.collection;
+    if (state.collection) {
+      const c = document.createElement('a');
+      c.href = `https://archive.org/details/${encodeURIComponent(state.collection.collection)}`;
+      c.textContent = state.collection.fullTitle;
+      col.append('in the ', c, state.collection.from ? ` · ${state.collection.from}` : '');
+    }
+  }
+
+  function showCover(id) {
+    const thumb = $('current-cover');
+    thumb.hidden = !id;
+    if (id) thumb.src = `https://archive.org/services/img/${encodeURIComponent(id)}`;
   }
 
   // ---- magnets ---------------------------------------------------------
@@ -442,7 +459,147 @@
     announce(text ? `Shook up the fridge. It now reads: ${text.replace(/\n/g, ' / ')}` : 'Shook up the fridge.');
   }
 
-  // ---- search ----------------------------------------------------------
+  // ---- shelves: books grouped by IA collection ---------------------------
+  //
+  // Each shelf is an archive.org collection. Its favorites are hand-picked;
+  // "More from this collection" pulls live from IA, limited to texts with
+  // OCR dated 1930 or earlier (public domain in the US).
+
+  const SHELVES = [
+    {
+      collection: 'gutenberg',
+      title: '📖 Project Gutenberg',
+      fullTitle: 'Project Gutenberg collection',
+      blurb: 'Clean texts of the classics. Covers are early editions scanned by libraries.',
+      // id: where the words come from; cover: a library scan of an early edition.
+      books: [
+        { id: 'poemsbyemilydick02678gut', cover: 'poemssucc00dickrich', title: 'Poems', by: 'Emily Dickinson' },
+        { id: 'leavesofgrass01322gut', cover: 'leavesofgrass00inwhit', title: 'Leaves of Grass', by: 'Walt Whitman' },
+        { id: 'mobydick00015gut', cover: 'mobydickorwhale01melv', title: 'Moby-Dick', by: 'Herman Melville' },
+        { id: 'frankenstein00084gut', cover: 'cu31924105428902', title: 'Frankenstein', by: 'Mary Shelley' },
+        { id: 'alicesadventures00011gut', cover: 'alicesadventures1901carr', title: "Alice's Adventures in Wonderland", by: 'Lewis Carroll' },
+      ],
+      search: true, // Gutenberg has no years on most items, so it gets search instead of "more"
+    },
+    {
+      collection: 'usda-nurseryandseedcatalog',
+      title: '🌱 Seed catalogs',
+      fullTitle: 'Henry G. Gilbert Nursery and Seed Trade Catalog Collection',
+      from: 'USDA National Agricultural Library',
+      blurb: 'Garden catalogs full of strange plant names. Scanned, so expect a few odd words.',
+      books: [
+        { id: 'alneerbrothersil00alne', title: 'Alneer Brothers illustrated catalogue', by: '1896' },
+        { id: 'gardengreenhouse18pete', title: 'Garden & greenhouse guide', by: 'Peter Henderson & Co., 1892' },
+        { id: 'CAT31289649', title: "Thorburn's seeds", by: '1908' },
+        { id: 'dreersgardencale1884henr', title: "Dreer's garden calendar", by: '1884' },
+        { id: 'curriesfarmgarde19curr_1', title: "Currie's farm & garden annual", by: '1918' },
+      ],
+    },
+    {
+      collection: 'juvenilehistoricalcollection',
+      title: "🧒 Children's books",
+      fullTitle: 'Juvenile Historical Collection',
+      from: 'UNC Chapel Hill',
+      blurb: "Illustrated children's books from the 1800s and early 1900s.",
+      books: [
+        { id: 'storyofrobinhood00chic', title: 'The story of Robin Hood', by: '1890' },
+        { id: 'realmothergoosewrig', title: 'The real Mother Goose', by: '1916' },
+        { id: 'junglebookkipl', title: 'The jungle book', by: 'Rudyard Kipling, 1894' },
+        { id: 'windinwillowsgrah', title: 'The wind in the willows', by: 'Kenneth Grahame, 1913' },
+        { id: 'alicesadventures1901carr', title: "Alice's adventures in Wonderland", by: 'Lewis Carroll, 1901' },
+      ],
+    },
+    {
+      collection: 'duke_libraries',
+      title: '📚 Duke University Libraries',
+      fullTitle: 'Duke University Libraries collection',
+      blurb: 'Poetry and fiction from Duke’s scanned collections.',
+      books: [
+        { id: 'cane01toom', title: 'Cane', by: 'Jean Toomer, 1923' },
+        { id: 'smokygodorvoyage00emer', title: 'The smoky god', by: 'Willis George Emerson, 1908' },
+        { id: 'whensleeperwakes00well', title: 'When the sleeper wakes', by: 'H. G. Wells, 1899' },
+        { id: 'songspoemsofgrea00tull', title: 'Songs and poems of the great world war', by: '1915' },
+      ],
+      moreQuery: 'subject:(poetry OR fiction OR poems)', // keep the big shelf on-theme
+    },
+  ];
+
+  // The shelf an item belongs to, from its metadata's collection list.
+  function shelfFor(collections) {
+    return SHELVES.find((sh) => collections.includes(sh.collection)) || null;
+  }
+
+  function renderShelves() {
+    const root = $('shelves');
+    for (const sh of SHELVES) {
+      const sec = document.createElement('section');
+      sec.className = 'shelf';
+      const h = document.createElement('h3');
+      h.textContent = sh.title + ' ';
+      const link = document.createElement('a');
+      link.href = `https://archive.org/details/${sh.collection}`;
+      link.className = 'shelf-link';
+      link.textContent = 'see the collection on archive.org';
+      h.append(link);
+      const p = document.createElement('p');
+      p.className = 'help';
+      p.textContent = sh.blurb;
+      const ul = document.createElement('ul');
+      ul.className = 'books';
+      ul.setAttribute('aria-label', sh.fullTitle);
+      for (const bk of sh.books) {
+        const li = document.createElement('li');
+        li.append(bookCard(bk.id, bk.title, bk.by, bk.cover || bk.id));
+        ul.append(li);
+      }
+      sec.append(h, p, ul);
+      if (sh.search) {
+        sec.append($('search-form'), $('results'));
+      } else {
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'more';
+        more.textContent = 'More from this collection';
+        let page = 1;
+        more.addEventListener('click', async () => {
+          more.disabled = true;
+          const added = await loadMore(sh, ul, ++page);
+          more.disabled = false;
+          if (!added) more.hidden = true;
+        });
+        sec.append(more);
+      }
+      root.append(sec);
+    }
+  }
+
+  // Next page of the collection, most-downloaded first, skipping books
+  // already on the shelf. Returns how many were added.
+  async function loadMore(sh, ul, page) {
+    const q = [
+      `collection:${sh.collection}`, 'mediatype:texts', 'year:[1500 TO 1930]', 'format:"DjVuTXT"',
+      sh.moreQuery,
+    ].filter(Boolean).join(' AND ');
+    const params = new URLSearchParams({ q, rows: '10', page: String(page - 1), output: 'json' });
+    params.append('sort[]', 'downloads desc');
+    ['identifier', 'title', 'creator', 'year'].forEach((f) => params.append('fl[]', f));
+    try {
+      const data = await (await fetch(`https://archive.org/advancedsearch.php?${params}`)).json();
+      const shown = new Set([...ul.querySelectorAll('.book')].map((b) => b.dataset.id));
+      const docs = data.response.docs.filter((d) => !shown.has(d.identifier));
+      for (const d of docs) {
+        const li = document.createElement('li');
+        const by = [[].concat(d.creator || '')[0], d.year].filter(Boolean).join(', ');
+        li.append(bookCard(d.identifier, [].concat(d.title)[0], by, d.identifier));
+        ul.append(li);
+      }
+      announce(`${docs.length} more from ${sh.fullTitle}.`);
+      return docs.length;
+    } catch (err) {
+      announce('Could not load more from that collection.');
+      return 0;
+    }
+  }
 
   async function search(q) {
     const results = $('results');
@@ -466,32 +623,43 @@
     }
   }
 
-  // Gutenberg items on IA only have a generic icon, so search results get
-  // a typeset cover instead, tinted per book so the grid isn't uniform.
-  function bookCard(id, title, creator) {
+  // A book card. With a cover id it shows that item's IA thumbnail;
+  // without one (Gutenberg search results) a typeset cover, tinted per book.
+  function bookCard(id, title, by, cover) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'book';
     b.dataset.id = id;
     b.setAttribute('aria-pressed', String(id === state.id));
-    const cover = document.createElement('span');
-    cover.className = 'typeset-cover';
-    cover.setAttribute('aria-hidden', 'true');
-    cover.style.setProperty('--hue', [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7));
-    cover.textContent = title;
+    let art;
+    if (cover) {
+      b.dataset.cover = cover;
+      art = document.createElement('img');
+      art.src = `https://archive.org/services/img/${encodeURIComponent(cover)}`;
+      art.alt = '';
+      art.loading = 'lazy';
+    } else {
+      art = document.createElement('span');
+      art.className = 'typeset-cover';
+      art.setAttribute('aria-hidden', 'true');
+      art.style.setProperty('--hue', [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7));
+      art.textContent = title;
+    }
     const t = document.createElement('span');
     t.className = 'book-title';
     t.textContent = title;
-    const by = document.createElement('span');
-    by.className = 'book-by';
-    by.textContent = creator || '';
-    b.append(cover, t, ' ', by);
+    const byEl = document.createElement('span');
+    byEl.className = 'book-by';
+    byEl.textContent = by || '';
+    b.append(art, t, ' ', byEl);
     return b;
   }
 
   // ---- wiring ----------------------------------------------------------
 
-  // One listener for preset and search-result cards alike.
+  renderShelves();
+
+  // One listener for every book card: favorites, "more", and search.
   document.addEventListener('click', (e) => {
     const b = e.target.closest('.book');
     if (b) loadBook(b.dataset.id);
