@@ -384,7 +384,70 @@
     if (aiState === 'unavailable') return;
     for (const [key, s] of Object.entries(L.POEM_STYLES)) $('ai-style').append(new Option(s.label, key));
     $('ai-tools').hidden = false;
-    setAiStatus(aiState === 'available' ? '' : '✨ uses Chrome’s built-in AI: a one-time download of a few GB');
+    updateAiUi();
+    if (aiState === 'downloading') {
+      // Started earlier (another visit or tab). Showing % needs a click,
+      // but checking whether it's done doesn't.
+      setAiStatus('Chrome’s AI is still downloading. Click Get the AI poet ready to see progress.');
+      watchDownload();
+    }
+  }
+
+  function updateAiUi() {
+    const ready = aiState === 'available';
+    $('ai-ready').hidden = ready;
+    if (ready) setAiStatus('');
+    else if (aiState === 'downloadable') setAiStatus('✨ uses Chrome’s built-in AI: a one-time download of a few GB');
+  }
+
+  // Check every few seconds (a local browser call, no network) until the
+  // model is ready.
+  let watchTimer = null;
+  function watchDownload() {
+    if (watchTimer) return;
+    watchTimer = setInterval(async () => {
+      try {
+        aiState = await LanguageModel.availability(AI_OPTS);
+      } catch (err) {
+        return;
+      }
+      if (aiState === 'available') {
+        clearInterval(watchTimer);
+        watchTimer = null;
+        updateAiUi();
+        setAiStatus('✨ AI poet ready');
+        announce('Chrome’s AI poet is ready.');
+      }
+    }, 5000);
+  }
+
+  function aiMonitor(m) {
+    m.addEventListener('downloadprogress', (e) => {
+      setAiStatus(`Downloading Chrome’s AI… ${Math.round(e.loaded * 100)}%`);
+    });
+  }
+
+  // Start (or resume watching) the one-time model download without
+  // writing a poem, so it's ready by the time someone wants one.
+  async function prepareAI() {
+    const btn = $('ai-ready');
+    btn.disabled = true;
+    try {
+      setAiStatus('Starting Chrome’s AI download…');
+      aiState = 'downloading';
+      watchDownload();
+      const session = await LanguageModel.create({ ...AI_OPTS, monitor: aiMonitor });
+      session.destroy();
+      aiState = 'available';
+      updateAiUi();
+      setAiStatus('✨ AI poet ready');
+      announce('Chrome’s AI poet is ready.');
+    } catch (err) {
+      console.warn('AI download:', err);
+      setAiStatus('Chrome couldn’t download its AI just now. Check your connection and free disk space, then try again.');
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // Chrome's model window can be small (1,000 tokens on some machines), so
@@ -434,13 +497,10 @@
       session = await LanguageModel.create({
         ...AI_OPTS,
         initialPrompts: [{ role: 'system', content: L.POET_SYSTEM }],
-        monitor(m) {
-          m.addEventListener('downloadprogress', (e) => {
-            setAiStatus(`Downloading Chrome’s AI… ${Math.round(e.loaded * 100)}%`);
-          });
-        },
+        monitor: aiMonitor,
       });
       aiState = 'available';
+      updateAiUi();
       setAiStatus('Thinking…');
       const pool = finish ? trayTiles().filter((m) => !m.classic) : state.magnets.filter((m) => !m.classic);
       const { tiles, prompt } = await fitPrompt(session, pool.map((m) => m.word), poem);
@@ -800,6 +860,7 @@
   $('new-words').addEventListener('click', () => { if (state.text) dealWords(); });
   $('write').addEventListener('click', () => { if (state.magnets.length) writePoem(); });
   $('ai-write').addEventListener('click', () => { if (state.magnets.length) aiPoem(false); });
+  $('ai-ready').addEventListener('click', prepareAI);
   $('ai-finish').addEventListener('click', () => { if (state.magnets.length) aiPoem(true); });
   $('shape').addEventListener('click', () => { if (state.magnets.length) shapePoem(); });
   $('shape-pick').addEventListener('change', () => {
